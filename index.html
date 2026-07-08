@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Haystack RAG 问答系统</title>
+
+    <style>
+        body {
+            width: 800px;
+            margin: 50px auto;
+            font-family: Arial, sans-serif;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .box {
+            margin-top: 25px;
+            padding: 15px;
+            border: 1px solid #cccccc;
+        }
+
+        .source {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+
+        #loading {
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Haystack RAG 问答系统</h1>
+
+<textarea
+        id="question"
+        placeholder="请输入问题，例如：本项目使用什么数据库？">
+</textarea>
+
+<br>
+
+<div class="box">
+    <h2>上传知识文件</h2>
+
+    <input
+            type="file"
+            id="knowledgeFile"
+            accept=".txt,.pdf">
+
+    <button onclick="uploadKnowledge()">
+        上传并建立知识库
+    </button>
+
+    <p id="uploadResult">暂时没有上传文件</p>
+</div>
+
+<button onclick="askQuestion()">提问</button>
+
+<div id="loading">正在生成答案，请稍候……</div>
+
+<div class="box">
+    <h2>回答</h2>
+    <div id="answer">暂时没有回答</div>
+</div>
+
+<div class="box">
+    <h2>检索来源</h2>
+    <div id="sources">暂时没有来源</div>
+</div>
+
+<script>
+
+    async function uploadKnowledge() {
+    const fileInput = document.getElementById("knowledgeFile");
+    const uploadResult = document.getElementById("uploadResult");
+
+    if (fileInput.files.length === 0) {
+        alert("请先选择 TXT 文件");
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    uploadResult.textContent = "正在上传并生成向量……";
+
+    try {
+        const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "上传失败");
+        }
+
+        uploadResult.textContent =
+            "上传成功：" +
+            data.filename +
+            "，生成分块：" +
+            data.chunks +
+            "，数据库文档总数：" +
+            data.total_documents;
+
+    } catch (error) {
+        uploadResult.textContent =
+            "上传失败：" + error.message;
+    }
+}
+
+    async function askQuestion() {
+        const questionInput = document.getElementById("question");
+        const answerDiv = document.getElementById("answer");
+        const sourcesDiv = document.getElementById("sources");
+        const loadingDiv = document.getElementById("loading");
+
+        const question = questionInput.value.trim();
+
+        if (question === "") {
+            alert("问题不能为空");
+            return;
+        }
+
+        answerDiv.textContent = "";
+        sourcesDiv.textContent = "";
+        loadingDiv.style.display = "block";
+
+        try {
+            const response = await fetch("/ask", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    question: question
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || "请求失败");
+            }
+
+            answerDiv.textContent = data.answer;
+
+            if (!data.sources || data.sources.length === 0) {
+                sourcesDiv.textContent = "没有检索到来源";
+                return;
+            }
+
+            data.sources.forEach(function (source, index) {
+                const sourceBox = document.createElement("div");
+                sourceBox.className = "source";
+
+                const title = document.createElement("strong");
+                title.textContent = "来源 " + (index + 1);
+
+                const content = document.createElement("p");
+                content.textContent = "内容：" + source.content;
+
+                const score = document.createElement("p");
+                score.textContent = "相似度：" + source.score;
+
+                const meta = document.createElement("p");
+                meta.textContent =
+                    "元数据：" + JSON.stringify(source.meta);
+
+                sourceBox.appendChild(title);
+                sourceBox.appendChild(content);
+                sourceBox.appendChild(score);
+                sourceBox.appendChild(meta);
+
+                sourcesDiv.appendChild(sourceBox);
+            });
+
+        } catch (error) {
+            answerDiv.textContent = "出错：" + error.message;
+            sourcesDiv.textContent = "没有来源";
+        } finally {
+            loadingDiv.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
