@@ -1,0 +1,36 @@
+{
+  "corpus": "星云知识助手真实场景语料",
+  "chunk_config": {
+    "chunk_size": 450,
+    "chunk_overlap": 80
+  },
+  "total_characters": 13272,
+  "estimated_total_chunks": 38,
+  "documents": [
+    {
+      "document": "01_项目背景与业务需求",
+      "characters": 2377,
+      "estimated_chunks": 7
+    },
+    {
+      "document": "02_文档接入与数据治理规范",
+      "characters": 2685,
+      "estimated_chunks": 8
+    },
+    {
+      "document": "03_检索系统与Qdrant运行手册",
+      "characters": 2897,
+      "estimated_chunks": 8
+    },
+    {
+      "document": "04_问答生成与安全运营规范",
+      "characters": 2200,
+      "estimated_chunks": 6
+    },
+    {
+      "document": "05_评测数据集与实验手册",
+      "characters": 3113,
+      "estimated_chunks": 9
+    }
+  ]
+}
